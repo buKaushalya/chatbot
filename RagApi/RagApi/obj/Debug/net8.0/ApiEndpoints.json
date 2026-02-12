@@ -1,0 +1,100 @@
+[
+  {
+    "ContainingType": "RagApi.Api.Workloads.ChatWorkload",
+    "Method": "ChatAsync",
+    "RelativePath": "v1/chat",
+    "HttpMethod": "POST",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "req",
+        "Type": "RagApi.Api.Contracts.ChatRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "RagApi.Api.Workloads.DocumentsWorkload",
+    "Method": "CreateCollection",
+    "RelativePath": "v1/collections",
+    "HttpMethod": "POST",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "req",
+        "Type": "RagApi.Api.Contracts.CreateCollectionRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "RagApi.Api.Workloads.DocumentsWorkload",
+    "Method": "UploadTextDocument",
+    "RelativePath": "v1/collections/{collectionId:guid}/documents/text",
+    "HttpMethod": "POST",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "collectionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "req",
+        "Type": "RagApi.Api.Contracts.UploadTextDocumentRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "RagApi.Api.Workloads.DocumentsWorkload",
+    "Method": "Search",
+    "RelativePath": "v1/collections/{collectionId:guid}/search",
+    "HttpMethod": "POST",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "collectionId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "req",
+        "Type": "RagApi.Api.Contracts.SearchRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  }
+]
