@@ -1,0 +1,112 @@
+-- =========================================
+-- RAG Chatbot Schema (PostgreSQL + pgvector)
+-- Embedding dimension: 384
+-- =========================================
+
+-- Extensions
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- =========================
+-- 1) Knowledge Base layer
+-- =========================
+
+CREATE TABLE IF NOT EXISTS public.collections (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  description text NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.documents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  collection_id uuid NOT NULL REFERENCES public.collections(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  source text NULL,
+  content_hash text NULL,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS ix_documents_collection
+  ON public.documents (collection_id);
+
+CREATE INDEX IF NOT EXISTS ix_documents_metadata_gin
+  ON public.documents USING gin (metadata);
+
+CREATE TABLE IF NOT EXISTS public.chunks (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  doc_id uuid NOT NULL REFERENCES public.documents(id) ON DELETE CASCADE,
+  chunk_index int NOT NULL,
+  content text NOT NULL,
+  token_count int NULL,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  embedding vector(384) NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (doc_id, chunk_index)
+);
+
+CREATE INDEX IF NOT EXISTS ix_chunks_doc
+  ON public.chunks (doc_id);
+
+CREATE INDEX IF NOT EXISTS ix_chunks_metadata_gin
+  ON public.chunks USING gin (metadata);
+
+-- Vector index
+CREATE INDEX IF NOT EXISTS ix_chunks_embedding_hnsw
+  ON public.chunks USING hnsw (embedding vector_cosine_ops);
+
+-- =========================
+-- 2) Chat history layer
+-- =========================
+
+CREATE TABLE IF NOT EXISTS public.conversations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  collection_id uuid NOT NULL REFERENCES public.collections(id) ON DELETE RESTRICT,
+  title text NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS ix_conversations_collection
+  ON public.conversations (collection_id);
+
+CREATE TABLE IF NOT EXISTS public.messages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id uuid NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
+  role text NOT NULL CHECK (role IN ('user','assistant','system')),
+  content text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS ix_messages_conversation_time
+  ON public.messages (conversation_id, created_at);
+
+-- =========================
+-- 3) Retrieval / citations audit
+-- =========================
+
+CREATE TABLE IF NOT EXISTS public.message_retrievals (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id uuid NOT NULL REFERENCES public.messages(id) ON DELETE CASCADE,
+  chunk_id uuid NOT NULL REFERENCES public.chunks(id) ON DELETE RESTRICT,
+  rank int NOT NULL,
+  score double precision NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (message_id, chunk_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_retrievals_message_rank
+  ON public.message_retrievals (message_id, rank);
+
+-- =========================
+-- 4) Simple API auth (optional)
+-- =========================
+
+CREATE TABLE IF NOT EXISTS public.api_keys (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  key_hash text NOT NULL UNIQUE,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  last_used_at timestamptz NULL
+);
